@@ -28,7 +28,16 @@ function Solo:IsEligible(entry)
     return item and self:IsSupportedItem(item) or false
 end
 
-function Solo:GetTexture(entry)
+function Solo:GetTexture(entry, display)
+    if display and display.isSecondary then
+        local settings = addon:GetEntrySettings(entry.cooldownID, false)
+        local spellID = settings and tonumber(settings.secondaryCustomIconSpellID)
+        if spellID and C_Spell and C_Spell.GetSpellTexture then
+            local ok, texture = pcall(C_Spell.GetSpellTexture, spellID)
+            if ok and texture then return texture end
+        end
+        return entry.originalIcon or entry.icon
+    end
     local customIcon = entry and addon.Catalog:GetCustomIcon(entry)
     if customIcon then return customIcon end
     local item = entry and addon.Runtime and addon.Runtime:GetLiveItem(entry.cooldownID)
@@ -107,6 +116,7 @@ function Solo:SyncFromItem(item)
     end
     self:UpdateActiveState(item, display)
     self:RefreshDisplay(display)
+    if self.RefreshSecondaryDisplay then self:RefreshSecondaryDisplay(entry, item, display) end
 end
 
 function Solo:OnTrigger(item, trigger)
@@ -121,6 +131,7 @@ function Solo:OnTrigger(item, trigger)
         display.activeState = false
     end
     self:RefreshDisplay(display)
+    if self.RefreshSecondaryDisplay then self:RefreshSecondaryDisplay(entry, item, display) end
 end
 
 function Solo:RefreshItem(item)
@@ -139,6 +150,8 @@ function Solo:RefreshItem(item)
                 oldDisplay.activeState = false
                 oldDisplay:Hide()
             end
+            if addon.ActionBarGlow then addon.ActionBarGlow:ClearEntry(oldCooldownID) end
+            if self.ReleaseSecondaryDisplay then self:ReleaseSecondaryDisplay(oldCooldownID) end
         end
         self:SetSourceHidden(item, false)
     end
@@ -158,6 +171,7 @@ function Solo:RefreshItem(item)
         self:SyncFromItem(item)
     else
         self:SetSourceHidden(item, false)
+        if self.ReleaseSecondaryDisplay then self:ReleaseSecondaryDisplay(entry.cooldownID) end
     end
 end
 
@@ -173,6 +187,8 @@ function Solo:ReleaseItem(item)
             display.activeState = false
             display:Hide()
         end
+        if addon.ActionBarGlow then addon.ActionBarGlow:ClearEntry(cooldownID) end
+        if self.ReleaseSecondaryDisplay then self:ReleaseSecondaryDisplay(cooldownID) end
     end
     self.itemCooldownIDs[item] = nil
     self:SetSourceHidden(item, false)
@@ -187,7 +203,7 @@ function Solo:ReconcileDisplays()
             display.active = false
             display.activeState = false
             self:RefreshDisplay(display)
-        elseif not entry or entry.cooldownID ~= cooldownID then
+        elseif not entry or entry.cooldownID ~= display.entry.cooldownID then
             if display.LiveCooldown or display.NativeItem then self:DetachLiveCooldown(display) end
             if addon.Effects then
                 if item then
@@ -203,11 +219,17 @@ function Solo:ReconcileDisplays()
             display.active = false
             display.activeState = false
             display:Hide()
+            if not display.isSecondary and addon.ActionBarGlow then
+                addon.ActionBarGlow:ClearEntry(cooldownID)
+            end
         else
             display.specPreviewOnly = nil
             display.specPreviewSpecID = nil
             display.entry = entry
             self:RefreshDisplay(display)
+            if not display.isSecondary and self.RefreshSecondaryDisplay then
+                self:RefreshSecondaryDisplay(entry, item, display)
+            end
         end
     end
     if self.RefreshSpecPreviewDisplays then self:RefreshSpecPreviewDisplays() end
@@ -263,6 +285,8 @@ function Solo:SetEnabled(entry, enabled)
             self:DetachLiveCooldown(display)
             display:Hide()
         end
+        if addon.ActionBarGlow then addon.ActionBarGlow:ClearEntry(entry.cooldownID) end
+        if self.ReleaseSecondaryDisplay then self:ReleaseSecondaryDisplay(entry.cooldownID) end
         self:SetSourceHidden(source, false)
     end
     return true

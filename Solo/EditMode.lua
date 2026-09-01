@@ -95,10 +95,18 @@ function Solo:ResetPositionsToBar()
 
     local ordered = {}
     for _, display in pairs(self.displays) do
-        if IsSoloEnabled(display.entry) then ordered[#ordered + 1] = display end
+        if IsSoloEnabled(display.entry)
+            and (not display.isSecondary or self:IsSecondaryEnabled(display.entry)) then
+            ordered[#ordered + 1] = display
+        end
     end
     table.sort(ordered, function(left, right)
-        return (tonumber(left.entry.cooldownID) or 0) < (tonumber(right.entry.cooldownID) or 0)
+        local leftID = tonumber(left.entry.cooldownID) or 0
+        local rightID = tonumber(right.entry.cooldownID) or 0
+        if leftID == rightID then
+            return (left.copyIndex or 1) < (right.copyIndex or 1)
+        end
+        return leftID < rightID
     end)
 
     local left = barX - (self.editBar:GetWidth() / 2) + 14
@@ -115,10 +123,13 @@ function Solo:ResetPositionsToBar()
             rowHeight = 0
         end
         local settings = addon:GetEntrySettings(display.entry.cooldownID, true)
-        settings.soloStackPosition = nil
-        settings.soloCooldownPosition = nil
-        settings.soloHotkeyPosition = nil
-        settings.soloPosition = {
+        if not display.isSecondary then
+            settings.soloStackPosition = nil
+            settings.soloCooldownPosition = nil
+            settings.soloHotkeyPosition = nil
+        end
+        local positionKey = display.isSecondary and "secondarySoloPosition" or "soloPosition"
+        settings[positionKey] = {
             x = cursorX + (width / 2) - rootX,
             y = rowTop - (height / 2) - rootY,
         }

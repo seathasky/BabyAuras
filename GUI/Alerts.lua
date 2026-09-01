@@ -32,6 +32,7 @@ function GUI:UpdateGlowControls()
     self.frame.GlowColor:SetAlpha(colorEnabled and 1 or 0.32)
     for _, control in ipairs(self.frame.GlowTuningControls or {}) do control:SetEnabled(colorEnabled) end
     for _, element in ipairs(self.frame.GlowTuningElements or {}) do element:SetAlpha(colorEnabled and 1 or 0.32) end
+    if self.RefreshActionBarGlowControls then self:RefreshActionBarGlowControls() end
 end
 
 function GUI:OnGlowTuningChanged(settingKey, value, valueLabel, suffix)
@@ -145,7 +146,7 @@ end
 function GUI:ResetAlertEffects()
     if not self.selected or not self.selectedTrigger then return end
     StaticPopupDialogs.BABY_AURAS_RESET_ALERT_EFFECTS = {
-        text = "|cFFFF3030ARE YOU SURE?|r\n\nReset Alert Effects for %s?\n\nThis turns Glow, Zoom, and Bounce OFF and restores their duration, color, and tuning defaults.",
+        text = "|cFFFF3030ARE YOU SURE?|r\n\nReset Alert Effects for %s?\n\nThis turns Glow, Action Bar Glow, Zoom, and Bounce OFF and restores their duration, color, and tuning defaults.",
         button1 = "Reset Alert Effects",
         button2 = CANCEL,
         OnAccept = function(_, data)
@@ -165,6 +166,9 @@ function GUI:ResetAlertEffects()
                 Defaults.trigger.color[1], Defaults.trigger.color[2],
                 Defaults.trigger.color[3], Defaults.trigger.color[4],
             }
+            local entrySettings = addon:GetEntrySettings(data.cooldownID, true)
+            entrySettings.actionBarGlow = false
+            if addon.ActionBarGlow then addon.ActionBarGlow:ClearEntry(data.cooldownID) end
             local item = addon.Runtime:GetLiveItem(data.cooldownID)
             if item then addon.Effects:HideGlow(item) end
             if GUI.testGlowTarget then

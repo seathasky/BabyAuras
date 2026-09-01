@@ -88,7 +88,7 @@ Tutorial.steps = {
     },
     {
         title = "Enable alerts",
-        text = "Each spell or aura has one Baby Auras settings page. Enable Alerts turns its configured glow, motion, TTS, and audio alerts on or off. Solo display, styling, positioning, and icon customization remain independent.",
+        text = "Each spell or aura has one Baby Auras settings page. Enable Alerts turns its configured glow, motion, TTS, and audio alerts on or off. Solo display, styling, positioning, and icon customization remain independent. Icon Customization can also enable a second independently sized and positioned Solo icon driven by the same CDM state.",
         target = function() return addon.GUI.frame.EnablePanel end,
         editorScroll = true,
     },
@@ -147,7 +147,7 @@ Tutorial.steps = {
     {
         title = "Visual alert effects",
         sectionKey = "effects",
-        text = "Glow Alert flashes the icon when the spell's alert fires. Choose Blizzard Proc, Pixel Glow, or Extended Glow, then set its duration. Pixel and Extended support a custom color plus Count, Speed, Thickness, and Padding controls. While Preview Mode is ON, these controls update the held glow live without replaying its sound. Tracked bars support Pixel and Extended; other icon categories can also use Blizzard Proc.",
+        text = "Glow Alert flashes the icon when the spell's alert fires. Choose Blizzard Proc, Pixel Glow, or Extended Glow, then set its duration. Action Bar Glow can also hold a Blizzard proc glow on one or more buttons you pick while the Solo element is active. Pixel and Extended support a custom color plus Count, Speed, Thickness, and Padding controls. While Preview Mode is ON, these controls update the held glow live without replaying its sound. Tracked bars support Pixel and Extended; other icon categories can also use Blizzard Proc.",
         target = function()
             local f = addon.GUI.frame
             return Frames(f.EffectsTitle, f.Glow, f.GlowStyle, f.Duration, f.GlowColor,

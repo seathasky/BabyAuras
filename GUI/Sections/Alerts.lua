@@ -87,6 +87,23 @@ function Alerts:Build(editor, anchor, frame)
     bounceDurationHint:SetText("0 = held")
     frame.BounceDurationHint = bounceDurationHint
 
+    local actionBarGlow, actionBarGlowLabel = Widgets.CreateCheckbox(editor, "Action bar glow", 125)
+    -- This is a full-width row. Anchor it from the left motion column; using
+    -- Bounce's right-hand duration label pushes the picker beyond the editor.
+    actionBarGlow:SetPoint("TOPLEFT", zoom, "BOTTOMLEFT", 0, -48)
+    actionBarGlow:SetScript("OnClick", function() GUI:OnActionBarGlowClicked() end)
+    frame.ActionBarGlow, frame.ActionBarGlowLabel = actionBarGlow, actionBarGlowLabel
+    local actionBarPicker = CreateFrame("Button", nil, editor, "UIPanelButtonTemplate")
+    actionBarPicker:SetSize(150, 24)
+    actionBarPicker:SetPoint("LEFT", actionBarGlow, "LEFT", 174, 0)
+    actionBarPicker:SetText("Pick buttons...")
+    actionBarPicker:SetScript("OnClick", function() GUI:OpenActionBarGlowPicker() end)
+    frame.ActionBarGlowPicker = actionBarPicker
+    local actionBarSummary = editor:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    actionBarSummary:SetPoint("TOPLEFT", actionBarGlow, "BOTTOMLEFT", 4, -3)
+    actionBarSummary:SetText("No buttons selected")
+    frame.ActionBarGlowSummary = actionBarSummary
+
     local color = Widgets.CreateColorButton(editor, "Glow color")
     color:SetPoint("LEFT", duration, "RIGHT", 24, 0)
     color:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -148,7 +165,7 @@ function Alerts:Build(editor, anchor, frame)
 
     local reset = CreateFrame("Button", nil, editor, "UIPanelButtonTemplate")
     reset:SetSize(190, 24)
-    reset:SetPoint("TOPLEFT", zoom, "BOTTOMLEFT", 0, -48)
+    reset:SetPoint("TOPLEFT", actionBarSummary, "BOTTOMLEFT", -4, -14)
     reset:SetText("Reset Alert Effects")
     reset:GetFontString():SetTextColor(1, 0.30, 0.30)
     reset:SetScript("OnClick", function() GUI:ResetAlertEffects() end)
@@ -163,14 +180,17 @@ function Alerts:Build(editor, anchor, frame)
         durationLabel = durationLabel, duration = duration, durationHint = durationHint,
         bounceDurationLabel = bounceDurationLabel, bounceDuration = bounceDuration,
         bounceDurationHint = bounceDurationHint,
+        actionBarGlow = actionBarGlow, actionBarGlowLabel = actionBarGlowLabel,
+        actionBarPicker = actionBarPicker, actionBarSummary = actionBarSummary,
         color = color, tuning = tuning, reset = reset,
         descriptor = {
             key = "effects", title = title, toggle = toggle, bottom = reset,
-            gap = -14, collapseHeight = 263,
+            gap = -14, collapseHeight = 330,
             elements = {
                 glow, glowLabel, styleLabel, style, zoom, zoomLabel, bounce, bounceLabel,
                 durationLabel, duration, durationHint, color,
                 bounceDurationLabel, bounceDuration, bounceDurationHint,
+                actionBarGlow, actionBarGlowLabel, actionBarPicker, actionBarSummary,
                 tuning.countLabel, tuning.count, tuning.countValue,
                 tuning.speedLabel, tuning.speed, tuning.speedValue,
                 tuning.thicknessLabel, tuning.thickness, tuning.thicknessValue,

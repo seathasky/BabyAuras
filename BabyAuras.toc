@@ -1,7 +1,7 @@
 ## Interface: 120100
 ## Title: Baby Auras
 ## Author: Seathasky
-## Version: 1.0.11
+## Version: 1.0.12
 ## X-Curse-Project-ID: 1651752
 ## Notes: Enhances World of Warcraft's built-in Cooldown Manager.
 ## IconTexture: Interface\AddOns\BabyAuras\Media\Images\BALogoTIconCentered.png
@@ -22,6 +22,7 @@ GUI\Theme.lua
 Core\Catalog.lua
 Alerts\Audio.lua
 Alerts\Glow.lua
+ActionBars\Glow.lua
 Alerts\Effects.lua
 Solo\Bootstrap.lua
 Solo\Utilities.lua
@@ -37,6 +38,7 @@ Solo\Text.lua
 Solo\Sizing.lua
 Solo\Positioning.lua
 Solo\Display.lua
+Solo\Secondary.lua
 Core\Runtime.lua
 Core\NativeCooldownTriggers.lua
 GUI\Navigation.lua

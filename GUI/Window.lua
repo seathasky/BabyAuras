@@ -761,12 +761,14 @@ function GUI:Create()
     -- theme, positioning, and icon customization remain independent.
     frame.TriggerGateControls = {
         glow, zoom, bounce, glowStyle, duration, bounceDuration, glowColor, frame.ResetAlertEffects,
+        frame.ActionBarGlow, frame.ActionBarGlowPicker,
         tts, textBox, speechRate, ttsVolume, ttsVolumeValue, audio, audioDropdown, audioPreview, audioChannel,
     }
     frame.TriggerGateElements = {
         effectsTitle, effectsLine, glow, glowLabel, zoom, zoomLabel, bounce, bounceLabel,
         glowStyleLabel, glowStyle, durationLabel, duration, durationHint,
         bounceDurationLabel, bounceDuration, bounceDurationHint, glowColor, frame.ResetAlertEffects,
+        frame.ActionBarGlow, frame.ActionBarGlowLabel, frame.ActionBarGlowPicker, frame.ActionBarGlowSummary,
         voiceTitle, voiceLine, tts, ttsLabel, textLabel, textBox, speechRateLabel, speechRate, rateHint,
         ttsVolume, ttsVolumeValue, audio, audioLabel, audioDropdown, audioPreview, audioChannel,
     }
@@ -845,6 +847,9 @@ function GUI:Create()
         soloHotkeyLabel, soloHotkey, soloHotkeySizeLabel, soloHotkeySize, soloHotkeySizeValue,
         hotkeyPositionLabel, hotkeyXLabel, hotkeyX, hotkeyXValue,
         hotkeyYLabel, hotkeyY, hotkeyYValue,
+        frame.SecondaryIcon, frame.SecondaryIconLabel, frame.SecondaryIconSpellLabel,
+        frame.SecondaryIconSpellID, frame.SecondaryIconSizeLabel,
+        frame.SecondaryIconSize, frame.SecondaryIconSizeValue,
     }
     frame.SoloStackPositionControls = { stackX, stackXValue, stackY, stackYValue }
     frame.SoloStackPositionElements = {

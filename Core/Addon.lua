@@ -115,6 +115,7 @@ end
 function addon:RefreshAll()
     self.Catalog:Build()
     self.Runtime:Install()
+    if self.ActionBarGlow then self.ActionBarGlow:RefreshAll() end
     if self.GUI then self.GUI:Refresh() end
 end
 

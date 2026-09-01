@@ -4,14 +4,29 @@ local Solo = addon.Solo
 local Defaults = addon.Defaults
 local GetBarDimensions = addon.SoloUtilities.GetBarDimensions
 
-function Solo:GetScale(entry)
+function Solo:GetScale(entry, copyIndex)
     local settings = entry and addon:GetEntrySettings(entry.cooldownID, false)
-    return Clamp(tonumber(settings and settings.soloScale) or Defaults.soloScale, 50, 200) / 100
+    local value = copyIndex == 2 and settings and settings.secondarySoloScale
+        or settings and settings.soloScale
+    return Clamp(tonumber(value) or Defaults.soloScale, 50, 200) / 100
 end
 
 function Solo:ApplyDisplayScale(display)
-    display:SetScale(self:GetScale(display.entry))
+    display:SetScale(self:GetScale(display.entry, display.copyIndex))
     if display.NativeItem then self:PositionNativeItem(display.NativeItem, display) end
+end
+
+function Solo:SetSecondaryScale(entry, percent)
+    if not entry then return end
+    local settings = addon:GetEntrySettings(entry.cooldownID, true)
+    settings.secondarySoloScale = Clamp(
+        math.floor((tonumber(percent) or Defaults.soloScale) + 0.5), 50, 200)
+    local display = self.displays[self:GetDisplayKey(entry.cooldownID, 2)]
+    if display then
+        self:ApplyDisplayScale(display)
+        self:ApplyDisplayPosition(display)
+        self:RefreshDisplay(display)
+    end
 end
 
 function Solo:SetScale(entry, percent)

@@ -339,5 +339,54 @@ function GUI:UpdateSoloControls()
     self.frame.SoloDesaturateInactive:SetEnabled(inactiveEnabled)
     self.frame.SoloDesaturateInactive:SetAlpha(inactiveEnabled and 1 or 0.32)
     self.frame.SoloDesaturateInactiveLabel:SetAlpha(inactiveEnabled and 1 or 0.32)
+    if self.RefreshActionBarGlowControls then self:RefreshActionBarGlowControls() end
+    if self.RefreshSecondaryIconControls then self:RefreshSecondaryIconControls() end
     self:ApplyEditorSectionLayout()
+end
+
+function GUI:RefreshSecondaryIconControls()
+    if not self.frame or not self.frame.SecondaryIcon or not self.selected then return end
+    local settings = addon:GetEntrySettings(self.selected.cooldownID, false)
+    local enabled = settings and settings.secondaryIconEnabled == true or false
+    local available = self.frame.Solo:IsShown() and self.frame.Solo:GetChecked() == true
+    self.frame.SecondaryIcon:SetChecked(enabled)
+    self.frame.SecondaryIcon:SetEnabled(available)
+    self.frame.SecondaryIcon:SetAlpha(available and 1 or 0.32)
+    self.frame.SecondaryIconLabel:SetAlpha(available and 1 or 0.32)
+    local detailsEnabled = available and enabled
+    for _, control in ipairs({
+        self.frame.SecondaryIconSpellID,
+        self.frame.SecondaryIconSize,
+        self.frame.SecondaryIconSizeValue,
+    }) do control:SetEnabled(detailsEnabled) end
+    for _, element in ipairs({
+        self.frame.SecondaryIconSpellLabel,
+        self.frame.SecondaryIconSpellID,
+        self.frame.SecondaryIconSizeLabel,
+        self.frame.SecondaryIconSize,
+        self.frame.SecondaryIconSizeValue,
+    }) do element:SetAlpha(detailsEnabled and 1 or 0.32) end
+end
+
+function GUI:OnSecondaryIconClicked()
+    if self.refreshing or not self.selected then return end
+    local settings = addon:GetEntrySettings(self.selected.cooldownID, true)
+    settings.secondaryIconEnabled = self.frame.SecondaryIcon:GetChecked() == true
+    if settings.secondaryIconEnabled then
+        addon.Solo:RefreshSecondaryDisplay(self.selected,
+            addon.Runtime:GetLiveItem(self.selected.cooldownID),
+            addon.Solo.displays[self.selected.cooldownID])
+    else
+        addon.Solo:ReleaseSecondaryDisplay(self.selected.cooldownID)
+    end
+    self:RefreshSecondaryIconControls()
+    self:SetStatus(settings.secondaryIconEnabled
+        and "Second Solo icon enabled; move it in Baby Edit Mode."
+        or "Second Solo icon disabled.")
+end
+
+function GUI:OnSecondaryIconSizeChanged(value)
+    if self.refreshing or not self.selected then return end
+    addon.Solo:SetSecondaryScale(self.selected, value)
+    self:SetStatus("Second icon size saved automatically.")
 end

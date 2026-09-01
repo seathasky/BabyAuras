@@ -39,7 +39,7 @@ function Solo:GetLinkedDisplays(entry)
     local displays = {}
     if not groupID then return displays end
     for _, display in pairs(self.displays or {}) do
-        if display.entry and self:GetLinkGroupID(display.entry) == groupID then
+        if not display.isSecondary and display.entry and self:GetLinkGroupID(display.entry) == groupID then
             displays[#displays + 1] = display
         end
     end
@@ -87,8 +87,11 @@ function Solo:UpdateLinkVisual(display)
     self:EnsureLinkVisuals(display)
 
     local visual = display.LinkVisual
-    local active = self:IsLinkMode() and self:IsPositioningMode()
-    local groupID, groupNumber, groupColor = self:GetLinkGroupVisual(display.entry)
+    local active = not display.isSecondary and self:IsLinkMode() and self:IsPositioningMode()
+    local groupID, groupNumber, groupColor
+    if not display.isSecondary then
+        groupID, groupNumber, groupColor = self:GetLinkGroupVisual(display.entry)
+    end
     local borderColor = groupColor or GREEN
     visual:SetFrameLevel(display:GetFrameLevel() + 20)
     display.LinkBadge:SetFrameLevel(display:GetFrameLevel() + 21)

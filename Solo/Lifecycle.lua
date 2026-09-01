@@ -21,7 +21,7 @@ function Solo:Resume(reason)
     for cooldownID, display in pairs(self.displays) do
         local item = self.sources[cooldownID]
         if IsSoloEnabled(display.entry) then
-            if item then
+            if item and not display.isSecondary then
                 self:InstallMirrors(item, display)
                 self:SetSourceHidden(item, true)
             end

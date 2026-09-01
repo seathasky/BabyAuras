@@ -134,8 +134,13 @@ function Solo:RefreshDisplay(display)
     local entry = display.entry
     local specPreview = self.IsSpecPreviewEnabled and self:IsSpecPreviewEnabled(entry) or false
     local enabled = IsSoloEnabled(entry) or specPreview
+    if display.isSecondary then
+        local settings = addon:GetEntrySettings(entry.cooldownID, false)
+        enabled = enabled and settings and settings.secondaryIconEnabled == true
+        specPreview = false
+    end
     local positioning = self:IsPositioningMode()
-    display.Icon:SetTexture(self:GetTexture(entry))
+    display.Icon:SetTexture(self:GetTexture(entry, display))
     if display.BarName then display.BarName:SetText(entry.name) end
     local showEditorBadge = positioning and BabyAurasDB.hideSoloLabels ~= true
     -- Tracked bars have a much smaller icon footprint, so the image badge
@@ -179,7 +184,8 @@ function Solo:RefreshDisplay(display)
 
     local textPreview = positioning and self.textPreviewEnabled == true
     display.StackPreview:SetShown(textPreview and appearance.soloShowStacks ~= false)
-    display.Count:SetShown(not display.NativeItem and not textPreview and appearance.soloShowStacks ~= false)
+    display.Count:SetShown(not display.NativeItem and not display.isSecondary
+        and not textPreview and appearance.soloShowStacks ~= false)
     display.CooldownPreview:SetShown(textPreview and appearance.soloShowNumbers ~= false)
     if textPreview and appearance.soloShowNumbers ~= false then
         pcall((display.LiveCooldown or display.Cooldown).SetHideCountdownNumbers,
@@ -215,6 +221,10 @@ function Solo:RefreshDisplay(display)
     if display.NativeItem then
         self:PositionNativeItem(display.NativeItem, display)
         self:UpdateNativeVisibility(display)
+    end
+    if addon.ActionBarGlow and not display.isSecondary then
+        addon.ActionBarGlow:UpdateEntry(entry, enabled and display.activeState == true
+            and not specPreview and not positioning and not self.suspended)
     end
 end
 

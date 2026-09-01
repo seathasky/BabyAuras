@@ -101,6 +101,9 @@ function GUI:RefreshEditor(message)
     frame.SelectedTimer:SetText(timerStatus)
     frame.SelectedTimer:SetShown(timerStatus ~= "")
     frame.IconSpellID:SetText(entrySettings and entrySettings.customIconSpellID or "")
+    frame.SecondaryIcon:SetChecked(entrySettings and entrySettings.secondaryIconEnabled == true)
+    frame.SecondaryIconSpellID:SetText(entrySettings and entrySettings.secondaryCustomIconSpellID or "")
+    frame.SecondaryIconSize:SetValue(entrySettings and entrySettings.secondarySoloScale or Defaults.soloScale)
     local isPrismaticBolt = entry.cooldownID == 198408
     frame.IconLabel:SetText(isPrismaticBolt
         and "Custom icon spell ID (overrides choice below)"
@@ -108,8 +111,12 @@ function GUI:RefreshEditor(message)
     frame.PrismaticIcon:SetShown(isPrismaticBolt)
     frame.PrismaticIconLabel:SetShown(isPrismaticBolt)
     frame.PrismaticIcon:SetChecked(isPrismaticBolt and (not entrySettings or entrySettings.showPrismaticBoltIcon ~= false))
+    frame.SecondaryIcon:ClearAllPoints()
+    frame.SecondaryIcon:SetPoint("TOPLEFT",
+        isPrismaticBolt and frame.PrismaticIcon or frame.IconSpellID,
+        "BOTTOMLEFT", -4, -8)
     frame.Message:ClearAllPoints()
-    frame.Message:SetPoint("TOPLEFT", frame.IconSpellID, "BOTTOMLEFT", -4, isPrismaticBolt and -40 or -16)
+    frame.Message:SetPoint("TOPLEFT", frame.SecondaryIconSize, "BOTTOMLEFT", -7, -18)
     local soloEligible = addon.Solo:IsEligible(entry)
     frame.SoloPanel:SetShown(soloEligible)
     frame.Solo:SetShown(soloEligible)
@@ -186,6 +193,7 @@ function GUI:RefreshEditor(message)
     frame.SoloActiveBorder:SetChecked(entrySettings and entrySettings.soloActiveBorder == true)
     frame.SoloAlwaysShow:SetChecked(entrySettings and entrySettings.soloAlwaysShow == true)
     frame.SoloDesaturateInactive:SetChecked(entrySettings and entrySettings.soloDesaturateInactive == true)
+    frame.ActionBarGlow:SetChecked(entrySettings and entrySettings.actionBarGlow == true)
     local blackBorderChecked
     if entrySettings and entrySettings.soloBlackBorder ~= nil then
         blackBorderChecked = entrySettings.soloBlackBorder == true
@@ -258,6 +266,8 @@ function GUI:RefreshEditor(message)
     frame.AudioDropdown:GenerateMenu()
     frame.AudioChannel:GenerateMenu()
     self:UpdateTriggerGate()
+    self:RefreshActionBarGlowControls()
+    self:RefreshSecondaryIconControls()
     frame.Message:SetText(message or "Live Blizzard Cooldown Manager frame detected.")
     self.refreshing = false
     self:ApplyEditorSectionLayout()

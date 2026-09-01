@@ -9,6 +9,8 @@ BabyAuras enhances World of Warcraft's built-in Cooldown Manager with configurab
 
 *   Built from the ground up by me with love, not AI!
 *   Custom audio, text-to-speech, and glow alerts
+*   Multi-select action-bar proc glows for active Solo elements
+*   Optional second Solo icon with its own icon, size, and movable position
 *   Movable Solo icons and tracked bars
 *   Per-icon text, font, color, and display controls
 *   Snapping, linked movement groups, and preview tools

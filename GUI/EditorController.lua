@@ -74,6 +74,11 @@ function GUI:CommitEditor()
         self:SetStatus("That custom icon spell ID is not valid.")
         return false
     end
+    local secondaryCustomIconSpellID = tonumber(self.frame.SecondaryIconSpellID:GetText())
+    if secondaryCustomIconSpellID and not C_Spell.GetSpellTexture(secondaryCustomIconSpellID) then
+        self:SetStatus("That second icon spell ID is not valid.")
+        return false
+    end
 
     local settings = triggerSupported
         and addon:GetTriggerSettings(self.selected.cooldownID, self.selectedTrigger, true) or nil
@@ -84,6 +89,7 @@ function GUI:CommitEditor()
     -- icon updates immediately even when the current trigger is disabled.
     local entrySettings = addon:GetEntrySettings(self.selected.cooldownID, true)
     entrySettings.customIconSpellID = customIconSpellID
+    entrySettings.secondaryCustomIconSpellID = secondaryCustomIconSpellID
 
     -- Apply icon customization to the currently hosted Solo element immediately
     -- instead of waiting for Blizzard to emit another CDM refresh.
@@ -91,6 +97,10 @@ function GUI:CommitEditor()
         local display = addon.Solo.displays and addon.Solo.displays[self.selected.cooldownID]
         if display then
             addon.Solo:RefreshDisplay(display)
+        end
+        if addon.Solo.RefreshSecondaryDisplay then
+            addon.Solo:RefreshSecondaryDisplay(self.selected,
+                addon.Runtime:GetLiveItem(self.selected.cooldownID), display)
         end
     end
 

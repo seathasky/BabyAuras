@@ -12,8 +12,10 @@ local function OnDisplayDragUpdate(display)
     Solo:UpdateLinkedDrag(display)
 end
 
-function Solo:CreateDisplay(entry, item)
+function Solo:CreateDisplay(entry, item, copyIndex)
     local display = CreateFrame("Button", nil, UIParent, "BackdropTemplate")
+    display.copyIndex = copyIndex == 2 and 2 or 1
+    display.isSecondary = display.copyIndex == 2
     local isBar = item and self:IsTrackedBarItem(item) or false
     local width, height = GetSoloBaseDimensions(entry, item, isBar)
     display:SetSize(width, height)
@@ -170,7 +172,7 @@ function Solo:CreateDisplay(entry, item)
     local badgeLetter = badgeFrame:CreateFontString(nil, "OVERLAY")
     badgeLetter:SetFont(STANDARD_TEXT_FONT, 12, "THICKOUTLINE")
     badgeLetter:SetPoint("CENTER", badgeFrame, "CENTER", 0, 0)
-    badgeLetter:SetText("B")
+    badgeLetter:SetText(display.isSecondary and "2" or "B")
     badgeLetter:SetTextColor(0.20, 0.72, 1, 1)
     display.BadgeLetter = badgeLetter
 
@@ -211,7 +213,7 @@ function Solo:CreateDisplay(entry, item)
     display:SetScript("OnDragStart", function(self)
         if Solo:IsPositioningMode() and not Solo:IsLinkMode() and not InCombatLockdown() then
             Solo:ClearSnap(self)
-            Solo:BeginLinkedDrag(self)
+            if not self.isSecondary then Solo:BeginLinkedDrag(self) end
             self:StartMoving()
             self.isDragging = true
             self.wasDragged = true
@@ -237,22 +239,23 @@ function Solo:CreateDisplay(entry, item)
             )
         end
         Solo:SaveDisplayPosition(self)
-        Solo:FinishLinkedDrag(self)
+        if not self.isSecondary then Solo:FinishLinkedDrag(self) end
         Solo:ClearSnap(self)
         C_Timer.After(0, function() self.wasDragged = nil end)
     end)
     display:SetScript("OnClick", function(self, button)
         if self.wasDragged or not Solo:IsPositioningMode() then return end
-        if button == "RightButton" and Solo:UnlinkDisplay(self) then return end
+        if not self.isSecondary and button == "RightButton" and Solo:UnlinkDisplay(self) then return end
         if button ~= "LeftButton" then return end
-        if Solo:ToggleLinkSelection(self) then return end
+        if not self.isSecondary and Solo:ToggleLinkSelection(self) then return end
         if addon.GUI then addon.GUI:OpenEntry(self.entry) end
     end)
     display:SetScript("OnEnter", function(self)
         if BabyAurasDB and BabyAurasDB.hideSoloTooltips then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(self.entry.name)
-        GameTooltip:AddLine("Baby Auras Solo display", 0.3, 0.85, 1)
+        GameTooltip:AddLine(self.isSecondary and "Baby Auras secondary Solo display"
+            or "Baby Auras Solo display", 0.3, 0.85, 1)
         if Solo:IsPositioningMode() then
             GameTooltip:AddLine("Drag to move | Click to configure", 0.75, 0.85, 1)
         end
@@ -260,7 +263,9 @@ function Solo:CreateDisplay(entry, item)
     end)
     display:SetScript("OnLeave", GameTooltip_Hide)
 
-    self.displays[entry.cooldownID] = display
+    local key = self.GetDisplayKey and self:GetDisplayKey(entry.cooldownID, display.copyIndex)
+        or entry.cooldownID
+    self.displays[key] = display
     self:ApplyDisplayPosition(display)
     return display
 end

@@ -129,6 +129,15 @@ function Defaults:InitializeDatabase(database)
         for _, entry in pairs(type(profile) == "table" and profile.entries or {}) do
             if type(entry) == "table" then
                 entry.editorCollapsedSections = nil
+                entry.secondaryIconEnabled = entry.secondaryIconEnabled == true
+                if entry.secondarySoloScale ~= nil then
+                    entry.secondarySoloScale = Clamp(
+                        math.floor((tonumber(entry.secondarySoloScale) or self.soloScale) + 0.5), 50, 200)
+                end
+                if entry.secondarySoloPosition ~= nil
+                    and type(entry.secondarySoloPosition) ~= "table" then
+                    entry.secondarySoloPosition = nil
+                end
                 for _, trigger in pairs(entry.triggers or {}) do
                     if type(trigger) == "table" then
                         if migrateOldBounceToZoom and trigger.zoom == nil and trigger.bounce ~= nil then

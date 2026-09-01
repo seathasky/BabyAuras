@@ -11,16 +11,30 @@ end
 local GetScreenCenter = Utilities.GetScreenCenter
 local ScreenToUIParent = Utilities.ScreenToUIParent
 
-function Solo:GetPosition(entry, create)
+function Solo:GetPosition(entry, create, copyIndex)
     local settings = entry and addon:GetEntrySettings(entry.cooldownID, create)
     if not settings then return nil end
-    if create and not settings.soloPosition then
-        settings.soloPosition = { x = 0, y = 0 }
+    local key = copyIndex == 2 and "secondarySoloPosition" or "soloPosition"
+    if create and not settings[key] then
+        settings[key] = { x = 0, y = 0 }
     end
-    return settings.soloPosition
+    return settings[key]
 end
 
-function Solo:GetDefaultPosition(entry, item)
+function Solo:GetDefaultPosition(entry, item, copyIndex)
+    if copyIndex == 2 then
+        local primary = self:GetPosition(entry, false, 1)
+        if primary then
+            local isBar = item and self:IsTrackedBarItem(item) or false
+            local width = GetSoloBaseDimensions(entry, item, isBar)
+            local primaryScale = self:GetScale(entry, 1)
+            local secondaryScale = self:GetScale(entry, 2)
+            return {
+                x = (primary.x or 0) + ((width * primaryScale + width * secondaryScale) / 2) + 8,
+                y = primary.y or 0,
+            }
+        end
+    end
     self:CreateEditBar()
     local barPosition = BabyAurasDB.editBarPosition or { x = 0, y = 0 }
     local barHeight = self.editBar:GetHeight() * self.editBar:GetScale()
@@ -43,13 +57,13 @@ function Solo:SaveDisplayPosition(display)
     local centerX, centerY = ScreenToUIParent(screenX, screenY)
     local rootX, rootY = UIParent:GetCenter()
     if not centerX or not centerY or not rootX or not rootY then return end
-    local position = self:GetPosition(display.entry, true)
+    local position = self:GetPosition(display.entry, true, display.copyIndex)
     position.x = centerX - rootX
     position.y = centerY - rootY
 end
 
 function Solo:ApplyDisplayPosition(display)
-    local position = self:GetPosition(display.entry, true)
+    local position = self:GetPosition(display.entry, true, display.copyIndex)
     local scale = display:GetScale()
     if not scale or scale == 0 then scale = 1 end
     display:ClearAllPoints()
@@ -107,7 +121,7 @@ function Solo:UpdateSnap(display)
     local gap = (BabyAurasDB.snapSpacing or 1) * rootScale
     local displayWidth = display:GetWidth() * display:GetEffectiveScale()
     local displayHeight = display:GetHeight() * display:GetEffectiveScale()
-    local displayLinkGroup = self:GetLinkGroupID(display.entry)
+    local displayLinkGroup = not display.isSecondary and self:GetLinkGroupID(display.entry) or nil
     local bestX, bestY, bestXDistance, bestYDistance, target
 
     local function ConsiderX(value, other)
@@ -124,7 +138,8 @@ function Solo:UpdateSnap(display)
     end
 
     for _, other in pairs(self.displays) do
-        local sameLinkGroup = displayLinkGroup and self:GetLinkGroupID(other.entry) == displayLinkGroup
+        local sameLinkGroup = displayLinkGroup and not other.isSecondary
+            and self:GetLinkGroupID(other.entry) == displayLinkGroup
         if other ~= display and not sameLinkGroup and other:IsShown() and IsPositioningVisible(other.entry) then
             local otherX, otherY = GetScreenCenter(other)
             if otherX and otherY then

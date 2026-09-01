@@ -128,6 +128,39 @@ local function GetNativeCooldownFontString(item)
     return ok and text or nil
 end
 
+local hookedNativeCooldowns = setmetatable({}, { __mode = "k" })
+local pendingNativeTextRefreshes = setmetatable({}, { __mode = "k" })
+
+local function QueueNativeTextRefresh(item, cooldown)
+    if pendingNativeTextRefreshes[cooldown] then return end
+    pendingNativeTextRefreshes[cooldown] = true
+    C_Timer.After(0, function()
+        pendingNativeTextRefreshes[cooldown] = nil
+        local hostState = Solo.nativeHostStates and Solo.nativeHostStates[item]
+        local display = hostState and hostState.display
+        if display and display.NativeItem == item and item.Cooldown == cooldown then
+            Solo:ApplyTextLayout(display)
+        end
+    end)
+end
+
+local function EnsureNativeCooldownTextHooks(item)
+    local cooldown = item and item.Cooldown
+    if not cooldown or hookedNativeCooldowns[cooldown] then return end
+    hookedNativeCooldowns[cooldown] = true
+
+    -- Blizzard creates the countdown FontString lazily when its native Cooldown
+    -- widget receives timer data. Reapply presentation after that exact update;
+    -- deliberately ignore all arguments because cooldown values may be secret.
+    for _, method in ipairs({ "SetCooldown", "SetCooldownFromDurationObject" }) do
+        if type(cooldown[method]) == "function" then
+            hooksecurefunc(cooldown, method, function()
+                QueueNativeTextRefresh(item, cooldown)
+            end)
+        end
+    end
+end
+
 local function SaveNativeFontState(hostState, key, fontString)
     if not hostState or not fontString then return nil end
     hostState.textDefaults = hostState.textDefaults or {}
@@ -162,6 +195,7 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
     if not item then return end
     local hostState = self.nativeHostStates and self.nativeHostStates[item]
     if not hostState then return end
+    EnsureNativeCooldownTextHooks(item)
     local settings = GetEntryAppearance(display.entry)
 
     -- These are Blizzard-owned FontStrings, but changing font/anchor properties is
@@ -192,12 +226,13 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
         -- create a perpetual timer loop.
         if not hostState.cooldownTextRetryPending then
             hostState.cooldownTextRetryPending = true
-            for index, delay in ipairs({ 0.05, 0.20 }) do
+            for index, delay in ipairs({ 0.05, 0.25, 1.00 }) do
+                local finalRetry = index == 3
                 C_Timer.After(delay, function()
                     local current = Solo.nativeHostStates and Solo.nativeHostStates[item]
                     if current ~= hostState or current.display ~= display then return end
                     Solo:ApplyTextLayout(display)
-                    if index == 2 then
+                    if finalRetry then
                         current.cooldownTextRetryPending = nil
                     end
                 end)

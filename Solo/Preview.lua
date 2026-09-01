@@ -26,11 +26,16 @@ end
 function Solo:RefreshCooldowns()
     for cooldownID, display in pairs(self.displays) do
         if IsSoloEnabled(display.entry) then
+            if display.isSecondary and self.SyncSecondaryTimer then
+                self:SyncSecondaryTimer(display)
+                self:ApplyAppearance(display)
+            else
             -- Native SyncCooldown already reapplies the icon, cooldown options,
             -- text layout, and visibility. Avoid immediately repeating the full
             -- local appearance pass for the hidden BabyAuras preview shell.
             local syncedNative = self:SyncCooldown(self.sources[cooldownID], display)
             if not syncedNative then self:ApplyAppearance(display) end
+            end
         end
     end
 end

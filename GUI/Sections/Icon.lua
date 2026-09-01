@@ -35,12 +35,58 @@ function Icon:Build(editor, anchor, frame)
     frame.PrismaticIcon = prismatic
     frame.PrismaticIconLabel = prismaticLabel
 
+    local secondary, secondaryLabel = Widgets.CreateCheckbox(editor, "Enable second Solo icon", 180)
+    -- Most entries do not show the Prismatic option. Anchor to the primary
+    -- spell field by default so that hidden special-case control does not leave
+    -- a large empty row. RefreshEditor moves this below Prismatic when needed.
+    secondary:SetPoint("TOPLEFT", spellID, "BOTTOMLEFT", -4, -8)
+    secondary:SetScript("OnClick", function() addon.GUI:OnSecondaryIconClicked() end)
+    frame.SecondaryIcon, frame.SecondaryIconLabel = secondary, secondaryLabel
+
+    local secondarySpellLabel = editor:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    secondarySpellLabel:SetPoint("TOPLEFT", secondary, "BOTTOMLEFT", 4, -7)
+    secondarySpellLabel:SetText("Second icon spell ID (blank = Blizzard icon)")
+    frame.SecondaryIconSpellLabel = secondarySpellLabel
+    local secondarySpellID = CreateFrame("EditBox", nil, editor, "InputBoxTemplate")
+    secondarySpellID:SetPoint("TOPLEFT", secondarySpellLabel, "BOTTOMLEFT", 4, -7)
+    secondarySpellID:SetSize(120, 26)
+    secondarySpellID:SetAutoFocus(false)
+    secondarySpellID:SetNumeric(true)
+    secondarySpellID:SetScript("OnEscapePressed", secondarySpellID.ClearFocus)
+    secondarySpellID:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+        addon.GUI:CommitEditor()
+    end)
+    secondarySpellID:SetScript("OnTextChanged", function() addon.GUI:ScheduleAutoSave() end)
+    frame.SecondaryIconSpellID = secondarySpellID
+
+    local secondarySizeLabel = editor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    -- Keep this on its own row. The spell-ID label is deliberately descriptive
+    -- and cannot safely share the editor's 390px width with a slider/value box.
+    secondarySizeLabel:SetPoint("TOPLEFT", secondarySpellID, "BOTTOMLEFT", -4, -10)
+    secondarySizeLabel:SetText("Second icon size")
+    frame.SecondaryIconSizeLabel = secondarySizeLabel
+    local secondarySize = CreateFrame("Slider", nil, editor, "OptionsSliderTemplate")
+    secondarySize:SetPoint("TOPLEFT", secondarySizeLabel, "BOTTOMLEFT", 7, -7)
+    secondarySize:SetSize(105, 16)
+    secondarySize:SetMinMaxValues(50, 200)
+    secondarySize:SetValueStep(5)
+    secondarySize:SetObeyStepOnDrag(true)
+    secondarySize.Low:SetText("")
+    secondarySize.High:SetText("")
+    secondarySize.Text:SetText("")
+    secondarySize:SetScript("OnValueChanged", function(_, value)
+        addon.GUI:OnSecondaryIconSizeChanged(value)
+    end)
+    local secondarySizeValue = Widgets.AttachSliderInput(editor, secondarySize, { suffix = "%" })
+    frame.SecondaryIconSize, frame.SecondaryIconSizeValue = secondarySize, secondarySizeValue
+
     local autoSave = editor:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     autoSave:SetPoint("LEFT", spellID, "RIGHT", 10, 0)
     autoSave:SetText("Changes save automatically")
 
     local message = editor:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    message:SetPoint("TOPLEFT", spellID, "BOTTOMLEFT", -4, -16)
+    message:SetPoint("TOPLEFT", secondarySize, "BOTTOMLEFT", -7, -18)
     message:SetWidth(390)
     message:SetJustifyH("LEFT")
     frame.Message = message
@@ -53,13 +99,24 @@ function Icon:Build(editor, anchor, frame)
         spellID = spellID,
         prismatic = prismatic,
         prismaticLabel = prismaticLabel,
+        secondary = secondary,
+        secondaryLabel = secondaryLabel,
+        secondarySpellLabel = secondarySpellLabel,
+        secondarySpellID = secondarySpellID,
+        secondarySizeLabel = secondarySizeLabel,
+        secondarySize = secondarySize,
+        secondarySizeValue = secondarySizeValue,
         autoSave = autoSave,
         message = message,
         toggle = toggle,
         descriptor = {
             key = "icon", title = title, toggle = toggle, bottom = message,
-            gap = -14, collapseHeight = 112,
-            elements = { label, spellID, prismatic, prismaticLabel, autoSave, message },
+            gap = -14, collapseHeight = 252,
+            elements = {
+                label, spellID, prismatic, prismaticLabel, autoSave,
+                secondary, secondaryLabel, secondarySpellLabel, secondarySpellID,
+                secondarySizeLabel, secondarySize, secondarySizeValue, message,
+            },
         },
     }
 end
