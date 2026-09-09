@@ -72,7 +72,7 @@ function Solo:RestoreNativeItem(item)
         RestoreSavedFontState(state.textDefaults.stack)
         RestoreSavedFontState(state.textDefaults.cooldown)
     end
-    if state.display then
+    if state.display and state.display.NativeItem == item then
         state.display.NativeItem = nil
         state.display.nativeHosted = nil
     end
@@ -314,6 +314,11 @@ end
 
 function Solo:AttachNativeItem(item, display)
     if not item or not display or self.suspended then return false end
+    -- A viewer can replace its pooled frame while keeping the same cooldown ID.
+    -- Release the previous owner before moving the replacement into this shell.
+    if display.NativeItem and display.NativeItem ~= item then
+        self:RestoreNativeItem(display.NativeItem)
+    end
     self.nativeHostStates = self.nativeHostStates or setmetatable({}, { __mode = "k" })
     local state = self.nativeHostStates[item]
     if state and state.display ~= display then

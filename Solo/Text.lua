@@ -129,19 +129,33 @@ local function GetNativeCooldownFontString(item)
 end
 
 local hookedNativeCooldowns = setmetatable({}, { __mode = "k" })
-local pendingNativeTextRefreshes = setmetatable({}, { __mode = "k" })
+local hookedNativeText = setmetatable({}, { __mode = "k" })
 
-local function QueueNativeTextRefresh(item, cooldown)
-    if pendingNativeTextRefreshes[cooldown] then return end
-    pendingNativeTextRefreshes[cooldown] = true
+local function QueueNativeTextRefresh(item)
+    local state = Solo.nativeHostStates and Solo.nativeHostStates[item]
+    if not state or state.applyingText or state.textRefreshPending or Solo.suspended then return end
+    state.textRefreshPending = true
     C_Timer.After(0, function()
-        pendingNativeTextRefreshes[cooldown] = nil
+        state.textRefreshPending = nil
         local hostState = Solo.nativeHostStates and Solo.nativeHostStates[item]
         local display = hostState and hostState.display
-        if display and display.NativeItem == item and item.Cooldown == cooldown then
+        if hostState == state and display and display.NativeItem == item and not Solo.suspended then
             Solo:ApplyTextLayout(display)
         end
     end)
+end
+
+local function EnsureNativeFontHooks(item, fontString)
+    if not fontString or hookedNativeText[fontString] then return end
+    hookedNativeText[fontString] = true
+    -- Presentation can change independently of aura/timer data. Ignore all
+    -- arguments, and never hook SetText or inspect the native count/timer value.
+    for _, method in ipairs({ "SetFont", "SetFontObject", "SetTextColor", "SetAlpha",
+        "SetParent", "SetDrawLayer", "ClearAllPoints", "SetPoint", "SetAllPoints" }) do
+        if type(fontString[method]) == "function" then
+            hooksecurefunc(fontString, method, function() QueueNativeTextRefresh(item) end)
+        end
+    end
 end
 
 local function EnsureNativeCooldownTextHooks(item)
@@ -152,10 +166,11 @@ local function EnsureNativeCooldownTextHooks(item)
     -- Blizzard creates the countdown FontString lazily when its native Cooldown
     -- widget receives timer data. Reapply presentation after that exact update;
     -- deliberately ignore all arguments because cooldown values may be secret.
-    for _, method in ipairs({ "SetCooldown", "SetCooldownFromDurationObject" }) do
+    for _, method in ipairs({ "SetCooldown", "SetCooldownFromDurationObject",
+        "SetCooldownDuration", "SetCooldownUNIX", "SetCountdownFont", "SetHideCountdownNumbers" }) do
         if type(cooldown[method]) == "function" then
             hooksecurefunc(cooldown, method, function()
-                QueueNativeTextRefresh(item, cooldown)
+                QueueNativeTextRefresh(item)
             end)
         end
     end
@@ -189,7 +204,7 @@ local function HostNativeText(display, saved, fontString)
     end)
 end
 
-function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
+local function ApplyNativeTextLayout(self, display, stackSize, cooldownSize, fontPath,
         stackR, stackG, stackB, stackA, cooldownR, cooldownG, cooldownB, cooldownA)
     local item = display and display.NativeItem
     if not item then return end
@@ -197,6 +212,9 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
     if not hostState then return end
     EnsureNativeCooldownTextHooks(item)
     local settings = GetEntryAppearance(display.entry)
+    if item.Cooldown then
+        pcall(item.Cooldown.SetHideCountdownNumbers, item.Cooldown, settings.soloShowNumbers == false)
+    end
 
     -- These are Blizzard-owned FontStrings, but changing font/anchor properties is
     -- the same presentation-only technique used by CMC. We never copy or inspect
@@ -204,10 +222,11 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
     local stackText = GetNativeStackFontString(item)
     if stackText then
         local saved = SaveNativeFontState(hostState, "stack", stackText)
+        EnsureNativeFontHooks(item, stackText)
         HostNativeText(display, saved, stackText)
         pcall(stackText.SetFont, stackText, fontPath or STANDARD_TEXT_FONT, stackSize, "OUTLINE")
         pcall(stackText.SetTextColor, stackText, stackR, stackG, stackB, stackA)
-        pcall(stackText.SetAlpha, stackText, settings.soloShowStacks == false and 0 or 1)
+        pcall(stackText.SetAlpha, stackText, settings.soloShowStacks == true and 1 or 0)
         local position = settings.soloStackPosition
         if type(position) == "table" and tonumber(position.x) and tonumber(position.y) then
             pcall(function()
@@ -230,7 +249,8 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
                 local finalRetry = index == 3
                 C_Timer.After(delay, function()
                     local current = Solo.nativeHostStates and Solo.nativeHostStates[item]
-                    if current ~= hostState or current.display ~= display then return end
+                    if current ~= hostState or current.display ~= display
+                        or display.NativeItem ~= item or Solo.suspended then return end
                     Solo:ApplyTextLayout(display)
                     if finalRetry then
                         current.cooldownTextRetryPending = nil
@@ -241,6 +261,7 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
     elseif cooldownText then
         hostState.cooldownTextRetryPending = nil
         local saved = SaveNativeFontState(hostState, "cooldown", cooldownText)
+        EnsureNativeFontHooks(item, cooldownText)
         HostNativeText(display, saved, cooldownText)
         pcall(cooldownText.SetFont, cooldownText, fontPath or STANDARD_TEXT_FONT, cooldownSize, "OUTLINE")
         pcall(cooldownText.SetTextColor, cooldownText, cooldownR, cooldownG, cooldownB, cooldownA)
@@ -253,6 +274,16 @@ function Solo:ApplyNativeTextLayout(display, stackSize, cooldownSize, fontPath,
             end)
         end
     end
+end
+
+function Solo:ApplyNativeTextLayout(display, ...)
+    local item = display and display.NativeItem
+    local state = item and self.nativeHostStates and self.nativeHostStates[item]
+    if not state or state.applyingText then return end
+    state.applyingText = true
+    local ok, err = pcall(ApplyNativeTextLayout, self, display, ...)
+    state.applyingText = nil
+    if not ok then error(err, 0) end
 end
 
 local function FindCooldownText(frame, depth)

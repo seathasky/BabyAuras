@@ -70,7 +70,7 @@ function Solo:ApplyAppearance(display)
             display.BarDuration:SetTextColor(r, g, b, a)
         end
     end
-    display.Count:SetShown(settings.soloShowStacks ~= false)
+    display.Count:SetShown(settings.soloShowStacks == true)
     self:ApplyTextLayout(display)
     local cooldown = display.LiveCooldown or display.Cooldown
     if settings.soloShowSwipe == false then
@@ -183,9 +183,9 @@ function Solo:RefreshDisplay(display)
     end
 
     local textPreview = positioning and self.textPreviewEnabled == true
-    display.StackPreview:SetShown(textPreview and appearance.soloShowStacks ~= false)
+    display.StackPreview:SetShown(textPreview and appearance.soloShowStacks == true)
     display.Count:SetShown(not display.NativeItem and not display.isSecondary
-        and not textPreview and appearance.soloShowStacks ~= false)
+        and not textPreview and appearance.soloShowStacks == true)
     display.CooldownPreview:SetShown(textPreview and appearance.soloShowNumbers ~= false)
     if textPreview and appearance.soloShowNumbers ~= false then
         pcall((display.LiveCooldown or display.Cooldown).SetHideCountdownNumbers,
