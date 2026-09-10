@@ -127,15 +127,6 @@ function Solo:CreateDisplay(entry, item, copyIndex)
     end
     display.PixelBorder = pixelBorder
 
-    -- Native cooldown/stack FontStrings are reparented here while an item is
-    -- hosted. This keeps Blizzard as the source of the live text while giving
-    -- the text a BabyAuras-owned layer above the pixel border.
-    local nativeTextOverlay = CreateFrame("Frame", nil, display)
-    nativeTextOverlay:SetAllPoints()
-    nativeTextOverlay:SetFrameLevel(display:GetFrameLevel() + 10)
-    nativeTextOverlay:EnableMouse(false)
-    display.NativeTextOverlay = nativeTextOverlay
-
     if DoesTemplateExist and DoesTemplateExist("ActionBarButtonSpellActivationAlert") then
         -- Blizzard's alert manager sizes its effect from the frame passed to
         -- ShowAlert, not from the alert child. Give tracked bars a dedicated

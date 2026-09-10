@@ -129,7 +129,6 @@ local function GetNativeCooldownFontString(item)
 end
 
 local hookedNativeCooldowns = setmetatable({}, { __mode = "k" })
-local hookedNativeText = setmetatable({}, { __mode = "k" })
 
 local function QueueNativeTextRefresh(item)
     local state = Solo.nativeHostStates and Solo.nativeHostStates[item]
@@ -143,19 +142,6 @@ local function QueueNativeTextRefresh(item)
             Solo:ApplyTextLayout(display)
         end
     end)
-end
-
-local function EnsureNativeFontHooks(item, fontString)
-    if not fontString or hookedNativeText[fontString] then return end
-    hookedNativeText[fontString] = true
-    -- Presentation can change independently of aura/timer data. Ignore all
-    -- arguments, and never hook SetText or inspect the native count/timer value.
-    for _, method in ipairs({ "SetFont", "SetFontObject", "SetTextColor", "SetAlpha",
-        "SetParent", "SetDrawLayer", "ClearAllPoints", "SetPoint", "SetAllPoints" }) do
-        if type(fontString[method]) == "function" then
-            hooksecurefunc(fontString, method, function() QueueNativeTextRefresh(item) end)
-        end
-    end
 end
 
 local function EnsureNativeCooldownTextHooks(item)
@@ -196,10 +182,11 @@ local function SaveNativeFontState(hostState, key, fontString)
 end
 
 local function HostNativeText(display, saved, fontString)
-    local overlay = display and display.NativeTextOverlay
-    if not overlay or not saved or not fontString then return end
+    if not saved or not fontString then return end
     pcall(function()
-        if fontString:GetParent() ~= overlay then fontString:SetParent(overlay) end
+        -- Keep native text with its owning widget. Moving it into our shell
+        -- disconnects it from Blizzard's hide/reset/reuse lifecycle.
+        if saved.parent and fontString:GetParent() ~= saved.parent then fontString:SetParent(saved.parent) end
         fontString:SetDrawLayer("OVERLAY", 7)
     end)
 end
@@ -222,7 +209,6 @@ local function ApplyNativeTextLayout(self, display, stackSize, cooldownSize, fon
     local stackText = GetNativeStackFontString(item)
     if stackText then
         local saved = SaveNativeFontState(hostState, "stack", stackText)
-        EnsureNativeFontHooks(item, stackText)
         HostNativeText(display, saved, stackText)
         pcall(stackText.SetFont, stackText, fontPath or STANDARD_TEXT_FONT, stackSize, "OUTLINE")
         pcall(stackText.SetTextColor, stackText, stackR, stackG, stackB, stackA)
@@ -261,7 +247,6 @@ local function ApplyNativeTextLayout(self, display, stackSize, cooldownSize, fon
     elseif cooldownText then
         hostState.cooldownTextRetryPending = nil
         local saved = SaveNativeFontState(hostState, "cooldown", cooldownText)
-        EnsureNativeFontHooks(item, cooldownText)
         HostNativeText(display, saved, cooldownText)
         pcall(cooldownText.SetFont, cooldownText, fontPath or STANDARD_TEXT_FONT, cooldownSize, "OUTLINE")
         pcall(cooldownText.SetTextColor, cooldownText, cooldownR, cooldownG, cooldownB, cooldownA)

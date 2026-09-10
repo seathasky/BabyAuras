@@ -182,10 +182,6 @@ function Solo:UpdateNativeVisibility(display)
         and (display.active or alwaysShow or (item.IsShown and item:IsShown()))
     local opacity = settings and Clamp(tonumber(settings.soloOpacity) or 100, 0, 100) / 100 or 1
     pcall(item.SetAlpha, item, shouldShow and opacity or 0)
-    -- Hosted native text is intentionally parented to BabyAuras so it can sit
-    -- above our border. Mirror the native item's effective alpha here so this
-    -- layer still follows normal fade, hide, and positioning-mode behavior.
-    if display.NativeTextOverlay then display.NativeTextOverlay:SetAlpha(shouldShow and opacity or 0) end
 
     -- If Blizzard has hidden the native item but BabyAuras is explicitly set to
     -- Always Show, use our local resolved-icon shell rather than leaving an empty

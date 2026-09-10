@@ -79,7 +79,8 @@ assert(#timers == 1, "external changes must coalesce")
 flush()
 assert(stack.font[1] == "custom" and stack.font[2] == 18)
 assert(stack.color[1] == 1 and stack.alpha == 1)
-assert(stack.parent == display.NativeTextOverlay and stack.points[1][4] == 4)
+assert(stack.parent == item and stack.points[1][4] == 4)
+assert(cooldown.text.parent == cooldown, "countdown must retain native lifecycle ownership")
 assert(cooldown.text.font[2] == 24 and not cooldown.hidden)
 assert(#timers == 0, "repair must not create a refresh loop")
 display.entry.soloShowStacks, display.entry.soloShowNumbers = false, false
@@ -88,6 +89,7 @@ cooldown:SetHideCountdownNumbers(false)
 flush()
 assert(stack.alpha == 0 and cooldown.text.alpha == 0 and cooldown.hidden)
 stack:SetFontObject()
+cooldown:SetCooldown()
 local before = layouts
 Solo.nativeHostStates[item] = { display = display }
 flush()

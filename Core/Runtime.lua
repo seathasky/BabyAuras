@@ -45,8 +45,19 @@ function Runtime:ApplyCustomIcon(item)
 end
 
 function Runtime:RefreshItem(item)
-    self.itemEntries[item] = self:ResolveItem(item)
+    local entry = self:IsActiveItem(item) and self:ResolveItem(item) or nil
+    local previous = self.itemEntries[item]
+    if previous and (not entry or previous.cooldownID ~= entry.cooldownID) then
+        addon.Solo:ReleaseItem(item)
+    end
+    self.itemEntries[item] = entry
     self:ApplyCustomIcon(item)
+end
+
+function Runtime:IsActiveItem(item)
+    local viewer = GetItemViewer(item)
+    local pool = viewer and viewer.itemFramePool
+    return pool and pool:IsActive(item) or false
 end
 
 function Runtime:QueueItemRefresh(item, syncOnly)
@@ -60,8 +71,12 @@ function Runtime:QueueItemRefresh(item, syncOnly)
     pending = { full = not syncOnly }
     self.pendingItemRefreshes[item] = pending
     C_Timer.After(0, function()
+        if Runtime.pendingItemRefreshes[item] ~= pending then return end
         Runtime.pendingItemRefreshes[item] = nil
-        if pending.full then
+        if not Runtime:IsActiveItem(item) then return end
+        local current = Runtime:ResolveItem(item)
+        local previous = Runtime.itemEntries[item]
+        if pending.full or not previous or not current or previous.cooldownID ~= current.cooldownID then
             Runtime:HookItem(item)
         elseif Runtime.itemEntries[item] then
             addon.Solo:SyncFromItem(item)
@@ -98,6 +113,16 @@ function Runtime:HookItem(item)
     self:RefreshItem(item)
     if self.hookedItems[item] then return end
     self.hookedItems[item] = true
+
+    -- Pool reset happens synchronously before a frame is reused. Invalidate its
+    -- queued work and restore presentation before its next assignment begins.
+    if type(item.ResetCooldownData) == "function" then
+        hooksecurefunc(item, "ResetCooldownData", function(frame)
+            if Runtime.pendingItemRefreshes then Runtime.pendingItemRefreshes[frame] = nil end
+            addon.Solo:ReleaseItem(frame)
+            Runtime.itemEntries[frame] = nil
+        end)
+    end
 
     if type(item.SetCooldownID) == "function" then
         hooksecurefunc(item, "SetCooldownID", function(frame)
@@ -236,8 +261,25 @@ function Runtime:ReconcileActiveItems()
     addon.Solo:ReconcileDisplays()
 end
 
+function Runtime:ReleaseChangedAssignments()
+    -- Resolve the complete new mapping first: frames can exchange cooldown IDs
+    -- during a talent/spec rebuild. Release all old owners before attaching any.
+    local activeItems = self:GetActiveItems()
+    local resolved = {}
+    for item in pairs(activeItems) do resolved[item] = self:ResolveItem(item) end
+    for item, previous in pairs(self.itemEntries) do
+        local current = resolved[item]
+        if not current or current.cooldownID ~= previous.cooldownID then
+            if self.pendingItemRefreshes then self.pendingItemRefreshes[item] = nil end
+            addon.Solo:ReleaseItem(item)
+            self.itemEntries[item] = nil
+        end
+    end
+end
+
 function Runtime:RebuildFromCDM()
     addon.Catalog:Build()
+    self:ReleaseChangedAssignments()
     for _, globalName in ipairs(self.viewers) do self:ScanViewer(_G[globalName]) end
     self:ReconcileActiveItems()
     if addon.GUI and addon.GUI.frame and addon.GUI.frame:IsShown() then addon.GUI:Refresh() end
@@ -255,6 +297,7 @@ end
 
 function Runtime:Install()
     addon.Solo:InstallEditorHooks()
+    self:ReleaseChangedAssignments()
     if not self.layoutDataHooked and C_CooldownViewer and type(C_CooldownViewer.SetLayoutData) == "function" then
         self.layoutDataHooked = true
         hooksecurefunc(C_CooldownViewer, "SetLayoutData", function()
@@ -296,9 +339,10 @@ end
 
 function Runtime:GetLiveItem(cooldownID)
     local source = addon.Solo.sources[cooldownID]
-    if source and self.itemEntries[source] then return source end
+    if source and self.itemEntries[source] and self.itemEntries[source].cooldownID == cooldownID
+        and self:IsActiveItem(source) then return source end
     for item, entry in pairs(self.itemEntries) do
-        if entry and entry.cooldownID == cooldownID then return item end
+        if entry and entry.cooldownID == cooldownID and self:IsActiveItem(item) then return item end
     end
 end
 
