@@ -176,8 +176,6 @@ function Solo:RefreshItem(item)
 end
 
 function Solo:ReleaseItem(item)
-    -- Release even when a stale source mapping no longer points at this item.
-    if self:IsNativeHosted(item) then self:RestoreNativeItem(item) end
     local cooldownID = self.itemCooldownIDs[item]
     local display = cooldownID and self.displays[cooldownID]
     if cooldownID and self.sources[cooldownID] == item then

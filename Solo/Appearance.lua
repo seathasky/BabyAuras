@@ -70,7 +70,7 @@ function Solo:ApplyAppearance(display)
             display.BarDuration:SetTextColor(r, g, b, a)
         end
     end
-    display.Count:SetShown(settings.soloShowStacks == true)
+    display.Count:SetShown(settings.soloShowStacks ~= false)
     self:ApplyTextLayout(display)
     local cooldown = display.LiveCooldown or display.Cooldown
     if settings.soloShowSwipe == false then
@@ -110,6 +110,7 @@ function Solo:ApplyAppearance(display)
     if display.BarTextOverlay then display.BarTextOverlay:SetFrameLevel(frameLevel + 6) end
     display.PixelBorder:SetFrameLevel(frameLevel + 7)
     if display.SpellActivationAlert then display.SpellActivationAlert:SetFrameLevel(frameLevel + 8) end
+    if display.NativeTextOverlay then display.NativeTextOverlay:SetFrameLevel(frameLevel + 10) end
     for _, mover in ipairs(display.TextMovers or {}) do mover:SetFrameLevel(frameLevel + 10) end
     if display.BadgeFrame then display.BadgeFrame:SetFrameLevel(frameLevel + 12) end
     display.EditOutline:SetFrameLevel(math.max(0, frameLevel - 1))
@@ -182,9 +183,9 @@ function Solo:RefreshDisplay(display)
     end
 
     local textPreview = positioning and self.textPreviewEnabled == true
-    display.StackPreview:SetShown(textPreview and appearance.soloShowStacks == true)
+    display.StackPreview:SetShown(textPreview and appearance.soloShowStacks ~= false)
     display.Count:SetShown(not display.NativeItem and not display.isSecondary
-        and not textPreview and appearance.soloShowStacks == true)
+        and not textPreview and appearance.soloShowStacks ~= false)
     display.CooldownPreview:SetShown(textPreview and appearance.soloShowNumbers ~= false)
     if textPreview and appearance.soloShowNumbers ~= false then
         pcall((display.LiveCooldown or display.Cooldown).SetHideCountdownNumbers,
